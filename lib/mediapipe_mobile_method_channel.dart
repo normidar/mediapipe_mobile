@@ -17,4 +17,14 @@ class MethodChannelMediapipeMobile extends MediapipeMobilePlatform {
     );
     return version;
   }
+
+  @override
+  Future<List<Map>?> detectionFaceWithImage(String imagePath,
+      {int? modelSelection, double? minDetectionConfidence}) async {
+    final detectionResult = await methodChannel.invokeMethod<List<Object?>>(
+        'detectionFaceWithImage', {'imagePath': imagePath});
+    List<Map>? rt =
+        detectionResult?.map((e) => e as Map).toList();
+    return rt;
+  }
 }

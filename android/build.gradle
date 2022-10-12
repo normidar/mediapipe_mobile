@@ -46,7 +46,7 @@ android {
     dependencies {
         // https://maven.google.com/web/index.html?#com.google.mediapipe
         // MediaPipe solution-core is the foundation of any MediaPipe Solutions.
-        var mp_version = '0.8.11-alpha-1'
+        var mp_version = 'latest.release'
         implementation 'com.google.mediapipe:solution-core:' + mp_version
         // Optional: MediaPipe Face Detection Solution.
         implementation 'com.google.mediapipe:facedetection:' + mp_version
