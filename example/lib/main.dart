@@ -1,15 +1,29 @@
 import 'dart:io';
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:mediapipe_mobile/mediapipe_mobile.dart';
 import 'package:mediapipe_mobile/mediapipe_solutions/face_detection/face_detection_util.dart';
+import 'package:mediapipe_mobile_example/camera_view.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(InitPage());
+}
+
+class InitPage extends StatelessWidget {
+  const InitPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: MyApp(),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -47,13 +61,16 @@ class _MyAppState extends State<MyApp> {
     final file = File('${(await getTemporaryDirectory()).path}/test.jpeg');
     await file.writeAsBytes(byteData.buffer
         .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-    final result = await FaceDetectionUtil.detectFaceWithImage(file.path);
+    final result = await FaceDetectionUtil.detectFaceWithImage(file.path,
+        isFullSizePoint: true);
     platformVersion = result[0].boundingBox.bottom.toString();
 
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
     // setState to update our non-existent appearance.
     if (!mounted) return;
+
+    jumpPage(context);
 
     setState(() {
       _platformVersion = platformVersion;
@@ -62,15 +79,25 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Plugin example app'),
+      ),
+      body: Center(
+        child: Text('Running on: $_platformVersion\n'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
       ),
     );
+  }
+
+  void jumpPage(BuildContext context) async {
+    final cameras = await availableCameras();
+    final firstCamera = cameras[1];
+    if (mounted) {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: ((context) => CameraView(camera: firstCamera))));
+    }
   }
 }

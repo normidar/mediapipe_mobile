@@ -6,14 +6,14 @@ import 'face.dart';
 class FaceDetectionUtil {
   /// detect face by image file
   static Future<List<Face>> detectFaceWithImage(String imagePath,
-      {int? modelSelection, double? minDetectionConfidence}) async {
+      {int? modelSelection, double? minDetectionConfidence, bool? isFullSizePoint}) async {
     final result =
         await MediapipeMobilePlatform.instance.detectionFaceWithImage(
       imagePath,
       modelSelection: modelSelection,
       minDetectionConfidence: minDetectionConfidence,
+      isFullSizePoint: isFullSizePoint
     );
-    print(result);
     return result?.map((e) {
           final bb = e['boundingBox'];
           return Face(Rect.fromLTWH(bb[0], bb[1], bb[2], bb[3]));

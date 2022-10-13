@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory
 import androidx.annotation.NonNull
 import com.google.mediapipe.solutions.facedetection.FaceDetection
 import com.google.mediapipe.solutions.facedetection.FaceDetectionOptions
+import com.google.mediapipe.solutions.hands.Hands
+import com.google.mediapipe.solutions.hands.HandsOptions
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -38,6 +40,7 @@ class MediapipeMobilePlugin: FlutterPlugin, MethodCallHandler {
       "detectionFaceWithImage" -> {
         val modelSelection:Int? = call.argument("modelSelection")
         val minDetectionConfidence:Float? = call.argument("minDetectionConfidence")
+        val isFullSizePoint:Boolean? = call.argument("isFullSizePoint")
         val faceDetectionOptionsBuilder = FaceDetectionOptions.builder()
         faceDetectionOptionsBuilder.setStaticImageMode(true)
         if (modelSelection != null) {
@@ -54,18 +57,29 @@ class MediapipeMobilePlugin: FlutterPlugin, MethodCallHandler {
             result.success(listOf(emptyMap<String, Any>()))
             return@setResultListener
           }
+          // bitmap width height
+          val bitmap = faceDetectionResult.inputBitmap()
+          val width = bitmap.width
+          val height = bitmap.height
           // face detetion result
           val detectionResult:MutableList<Map<String,Any>> = mutableListOf()
           for (e in detections) {
             val locationData = e.locationData
             val boundingBox = locationData.relativeBoundingBox
-            val boundingBoxArray: FloatArray = floatArrayOf(
+            val boundingBoxArray: FloatArray =
+              if (isFullSizePoint == true)
+              floatArrayOf(
+                boundingBox.xmin * width, boundingBox.ymin * height,
+                boundingBox.width * width,boundingBox.height * height
+              )
+            else floatArrayOf(
               boundingBox.xmin, boundingBox.ymin,
               boundingBox.width,boundingBox.height
             )
             val keyPoints =locationData.relativeKeypointsList
             val keypointList = keyPoints.map {
-              floatArrayOf(it.x,it.y)
+              if (isFullSizePoint == true) floatArrayOf(it.x * width, it.y * height)
+                else floatArrayOf(it.x,it.y)
             }
             detectionResult.add(
               mapOf("boundingBox" to boundingBoxArray, "keyPoints" to keypointList)
@@ -82,6 +96,67 @@ class MediapipeMobilePlugin: FlutterPlugin, MethodCallHandler {
           try {
             val bitmap = BitmapFactory.decodeFile(imagePath)
             faceDetection.send(bitmap)
+          } catch (e:Exception) {
+            result.error("image analyze fail", null, null)
+          }
+        } else {
+          result.error("with out imagePath",null,null)
+        }
+      }
+      "handsWithImage" -> {
+        val maxNumHands:Int? = call.argument("maxNumHands")
+        val isRunOnGpu:Boolean? = call.argument("isRunOnGpu")
+        val minDetectionConfidence:Float? = call.argument("minDetectionConfidence")
+        val minTrackingConfidence:Float? = call.argument("minTrackingConfidence")
+        val modelComplexity:Int? = call.argument("modelComplexity")
+        val isFullSizePoint:Boolean? = call.argument("isFullSizePoint")
+        val handsOptionsBuilder = HandsOptions.builder()
+        handsOptionsBuilder.setStaticImageMode(true)
+        if (maxNumHands != null) {
+          handsOptionsBuilder.setMaxNumHands(maxNumHands)
+        }
+        if (isRunOnGpu != null) {
+          handsOptionsBuilder.setRunOnGpu(isRunOnGpu)
+        }
+        if (minDetectionConfidence != null) {
+          handsOptionsBuilder.setMinDetectionConfidence(minDetectionConfidence)
+        }
+        if (minTrackingConfidence != null) {
+          handsOptionsBuilder.setMinTrackingConfidence(minTrackingConfidence)
+        }
+        if (modelComplexity != null) {
+          handsOptionsBuilder.setModelComplexity(modelComplexity)
+        }
+        val handsOptions = handsOptionsBuilder.build()
+        val hands = Hands(context, handsOptions)
+        hands.setResultListener { handsResult ->
+          val detections = handsResult.multiHandLandmarks()
+          // bitmap width height
+          val bitmap = handsResult.inputBitmap()
+          val width = bitmap.width
+          val height = bitmap.height
+          // face detetion result
+          val detectionResult:MutableMap<String,Any> = mutableMapOf("imageSize" to arrayOf(width,height))
+          val handsList = mutableListOf<Array<Array<Float>>>()
+          for (e in detections) {
+            val locationData = e.landmarkList
+            val landmarkArray = locationData.map {
+              return@map arrayOf(it.x, it.y, it.z)
+            }.toTypedArray()
+            handsList.add(landmarkArray)
+          }
+          detectionResult.put("detectionResult", handsList)
+          result.success(detectionResult)
+        }
+        hands.setErrorListener { message, e ->
+          result.error(e.hashCode().toString(),message,null)
+        }
+        // get the bitmap and send
+        val imagePath:String? = call.argument("imagePath")
+        if (imagePath != null) {
+          try {
+            val bitmap = BitmapFactory.decodeFile(imagePath)
+            hands.send(bitmap)
           } catch (e:Exception) {
             result.error("image analyze fail", null, null)
           }

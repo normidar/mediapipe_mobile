@@ -19,6 +19,8 @@ dependencies:
     sdk: flutter
 
   path_provider: ^2.0.11
+  camera: ^0.10.0+3
+  path: ^1.8.2
 
   mediapipe_mobile:
     # When depending on this package from a real application you should use:
