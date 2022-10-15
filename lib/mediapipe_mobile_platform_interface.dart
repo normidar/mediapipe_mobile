@@ -27,7 +27,7 @@ abstract class MediapipeMobilePlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
-  Future<List<Map>?> detectionFaceWithImage(
+  Future<Map?> detectionFaceWithImage(
     String imagePath, {int? modelSelection, double? minDetectionConfidence, bool? isFullSizePoint}
   ) {
     throw UnimplementedError('detectionFaceWithImage() has not been implemented.');

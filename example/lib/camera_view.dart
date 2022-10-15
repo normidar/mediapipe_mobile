@@ -15,7 +15,8 @@ class CameraView extends StatefulWidget {
 class CameraViewState extends State<CameraView> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
-  double x = 0;
+  String x = 'x:0';
+  String y = 'y:0';
   bool isDetecting = false;
 
   @override
@@ -51,7 +52,7 @@ class CameraViewState extends State<CameraView> {
             detectFace();
           }
         },
-        child: Text(message),
+        child: Column(children: [Text(x), Text(y)]),
       ),
     );
   }
@@ -61,8 +62,9 @@ class CameraViewState extends State<CameraView> {
     final picture = await _controller.takePicture();
     final result = await FaceDetectionUtil.detectFaceWithImage(picture.path,
         isFullSizePoint: true);
-    if (result.isNotEmpty) {
-      message = result.first.boundingBox.left.toString();
+    if (result.isNotEmpty && mounted) {
+      x = 'x:${result.first.boundingBox.left.floor()}';
+      y = 'y:${result.first.boundingBox.top.floor()}';
       setState(() {});
     }
 

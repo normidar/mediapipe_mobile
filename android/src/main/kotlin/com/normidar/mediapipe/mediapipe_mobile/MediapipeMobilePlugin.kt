@@ -40,7 +40,6 @@ class MediapipeMobilePlugin: FlutterPlugin, MethodCallHandler {
       "detectionFaceWithImage" -> {
         val modelSelection:Int? = call.argument("modelSelection")
         val minDetectionConfidence:Float? = call.argument("minDetectionConfidence")
-        val isFullSizePoint:Boolean? = call.argument("isFullSizePoint")
         val faceDetectionOptionsBuilder = FaceDetectionOptions.builder()
         faceDetectionOptionsBuilder.setStaticImageMode(true)
         if (modelSelection != null) {
@@ -53,42 +52,39 @@ class MediapipeMobilePlugin: FlutterPlugin, MethodCallHandler {
         val faceDetection = FaceDetection(context, faceDetectionOptions)
         faceDetection.setResultListener { faceDetectionResult ->
           val detections = faceDetectionResult.multiFaceDetections()
-          if (detections.isEmpty()) {
-            result.success(listOf(emptyMap<String, Any>()))
-            return@setResultListener
-          }
           // bitmap width height
           val bitmap = faceDetectionResult.inputBitmap()
           val width = bitmap.width
           val height = bitmap.height
+          val imageSize = intArrayOf(width, height)
           // face detetion result
+          val returnResult:MutableMap<String,Any> = mutableMapOf("imageSize" to imageSize)
           val detectionResult:MutableList<Map<String,Any>> = mutableListOf()
           for (e in detections) {
             val locationData = e.locationData
+            if (!locationData.hasRelativeBoundingBox()) {
+              continue
+            }
             val boundingBox = locationData.relativeBoundingBox
-            val boundingBoxArray: FloatArray =
-              if (isFullSizePoint == true)
-              floatArrayOf(
-                boundingBox.xmin * width, boundingBox.ymin * height,
-                boundingBox.width * width,boundingBox.height * height
-              )
-            else floatArrayOf(
+            val boundingBoxArray: FloatArray = floatArrayOf(
               boundingBox.xmin, boundingBox.ymin,
               boundingBox.width,boundingBox.height
             )
             val keyPoints =locationData.relativeKeypointsList
             val keypointList = keyPoints.map {
-              if (isFullSizePoint == true) floatArrayOf(it.x * width, it.y * height)
-                else floatArrayOf(it.x,it.y)
+              floatArrayOf(it.x,it.y)
             }
             detectionResult.add(
               mapOf("boundingBox" to boundingBoxArray, "keyPoints" to keypointList)
             )
           }
-          result.success(detectionResult)
+          returnResult["detectionResult"] = detectionResult
+          result.success(returnResult)
+          faceDetection.close()
         }
         faceDetection.setErrorListener { message, e ->
           result.error(e.hashCode().toString(),message,null)
+          faceDetection.close()
         }
         // get the bitmap and send
         val imagePath:String? = call.argument("imagePath")
